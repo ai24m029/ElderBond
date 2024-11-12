@@ -1,0 +1,30 @@
+name: Run Tests
+
+# Run the workflow whenever there's a push or pull request to the main branch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'  # Use Python version of your choice
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sqlite3  # Install any specific packages
+
+    - name: Run tests
+      run: |
+        python -m unittest discover -s . -p "TestDatabase.py"
