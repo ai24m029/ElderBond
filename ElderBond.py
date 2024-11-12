@@ -17,8 +17,8 @@ with DataBaseAccess() as db:
         print("Text:", latest_post[2])
         print("User:", latest_post[3])
         print("Timestamp:", latest_post[4])
+        print("ActionsTest")
     else:
         print("No posts available.")
         # Retrieve and print all posts to see their timestamps
         
-    
