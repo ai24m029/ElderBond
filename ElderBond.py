@@ -54,19 +54,17 @@ def index():
     return render_template('index.html', posts=posts)
 
 
-@app.route('/add_post', methods=['GET', 'POST'])
+@app.route('/add_post', methods=['POST'])
 def add_post():
-    if request.method == 'POST':
-        image = request.form['image']
-        text = request.form['text']
-        user = request.form['user']
+    image = request.form['image']
+    text = request.form['text']
+    user = request.form['user']
 
-        with DataBaseAccess() as db:
-            db.add_post(image, text, user)
+    with DataBaseAccess() as db:
+        db.add_post(image, text, user)
 
-        return redirect(url_for('index'))
-
-    return render_template('add_post.html')
+    # Redirect back to the homepage
+    return redirect('/')
 
 
 @app.route('/search', methods=['GET'])
