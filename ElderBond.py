@@ -48,9 +48,18 @@ def search_posts_api():
 
 @app.route('/')
 def index():
-    # Display all posts
+    # Get the 'user' query parameter from the URL
+    user = request.args.get('user')
+
     with DataBaseAccess() as db:
-        posts = db.get_all_posts()
+        if user:
+            # Search for posts by the specific user
+            db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
+            posts = db.cursor.fetchall()
+        else:
+            # Fetch all posts if no user is specified
+            posts = db.get_all_posts()
+
     return render_template('index.html', posts=posts)
 
 

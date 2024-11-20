@@ -8,17 +8,34 @@
 </head>
 <body>
   <div class="app-container">
+    <!-- Search Section -->
+    <header class="header">
+      <h1>Social Media Feed</h1>
+      <form method="get" action="/" class="search-form">
+        <input
+          type="text"
+          name="user"
+          placeholder="Search posts by username"
+          value="{{ request.args.get('user') or '' }}"
+        />
+        <button type="submit" class="btn">Search</button>
+      </form>
+    </header>
+
     <!-- Feed Section -->
     <main class="feed">
-      <h1>Feed</h1>
       <ul class="post-list">
-        {% for post in posts %}
-          <li class="post">
-            <p class="post-user">{{ post[3] }}</p>
-            <p class="post-text">{{ post[2] }}</p>
-            <small class="post-timestamp">{{ post[4] }}</small>
-          </li>
-        {% endfor %}
+        {% if posts %}
+          {% for post in posts %}
+            <li class="post">
+              <p class="post-user">{{ post[3] }}</p>
+              <p class="post-text">{{ post[2] }}</p>
+              <small class="post-timestamp">{{ post[4] }}</small>
+            </li>
+          {% endfor %}
+        {% else %}
+          <p class="no-posts">No posts found.</p>
+        {% endif %}
       </ul>
     </main>
 
@@ -31,13 +48,13 @@
         <h2>Add a New Post</h2>
         <form id="add-post-form" method="post" action="/add_post">
           <label for="image">Image URL:</label>
-          <input type="text" id="image" name="image" placeholder="Enter image URL" required>
+          <input type="text" id="image" name="image" placeholder="Enter image URL" required />
 
           <label for="text">Text:</label>
           <textarea id="text" name="text" placeholder="Write your post..." required></textarea>
 
           <label for="user">Username:</label>
-          <input type="text" id="user" name="user" placeholder="Enter your username" required>
+          <input type="text" id="user" name="user" placeholder="Enter your username" required />
 
           <button type="submit" class="btn">Submit</button>
         </form>
@@ -49,4 +66,3 @@
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
-
