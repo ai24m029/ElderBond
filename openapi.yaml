@@ -1,0 +1,93 @@
+openapi: 3.0.0
+info:
+  title: Simple Social Media API
+  description: API for managing social media posts.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+
+paths:
+  /posts:
+    get:
+      summary: List all posts
+      responses:
+        '200':
+          description: A list of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+    post:
+      summary: Add a new post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostInput'
+      responses:
+        '201':
+          description: Post created
+  /posts/{postId}:
+    get:
+      summary: Get a post by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Post details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          description: Post not found
+  /posts/search:
+    get:
+      summary: Search posts by user
+      parameters:
+        - name: user
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+
+components:
+  schemas:
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        image:
+          type: string
+        text:
+          type: string
+        user:
+          type: string
+        timestamp:
+          type: string
+    PostInput:
+      type: object
+      properties:
+        image:
+          type: string
+        text:
+          type: string
+        user:
+          type: string

@@ -1,24 +1,86 @@
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from DataBase import DataBaseAccess
 
+app = Flask(__name__)
 
-# Initialize the Database
-with DataBaseAccess() as db:
-    # Add some posts
-    db.add_post("image1.jpg", "First post text", "User1")
-    db.add_post("image2.jpg", "Second post text", "User2")
-    db.add_post("image3.jpg", "Third post text", "User3")
+# API Endpoints
 
-   
-    # Retrieve and print the latest post
-    latest_post = db.get_latest_post()
-    if latest_post:
-        print("Latest Post:")
-        print("Image:", latest_post[1])
-        print("Text:", latest_post[2])
-        print("User:", latest_post[3])
-        print("Timestamp:", latest_post[4])
-        print("ActionsTest")
-    else:
-        print("No posts available.")
-        # Retrieve and print all posts to see their timestamps
-        
+@app.route('/api/posts', methods=['POST'])
+def add_post_api():
+    data = request.json
+    image = data.get('image')
+    text = data.get('text')
+    user = data.get('user')
+
+    with DataBaseAccess() as db:
+        db.add_post(image, text, user)
+
+    return jsonify({'message': 'Post added successfully'}), 201
+
+
+@app.route('/api/posts', methods=['GET'])
+def list_posts_api():
+    with DataBaseAccess() as db:
+        posts = db.get_all_posts()
+
+    results = [
+        {'id': post[0], 'image': post[1], 'text': post[2], 'user': post[3], 'timestamp': post[4]}
+        for post in posts
+    ]
+    return jsonify(results)
+
+
+@app.route('/api/posts/search', methods=['GET'])
+def search_posts_api():
+    user = request.args.get('user')
+    with DataBaseAccess() as db:
+        db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
+        posts = db.cursor.fetchall()
+
+    results = [
+        {'id': post[0], 'image': post[1], 'text': post[2], 'user': post[3], 'timestamp': post[4]}
+        for post in posts
+    ]
+    return jsonify(results)
+
+
+# Frontend Routes
+
+@app.route('/')
+def index():
+    # Display all posts
+    with DataBaseAccess() as db:
+        posts = db.get_all_posts()
+    return render_template('index.html', posts=posts)
+
+
+@app.route('/add_post', methods=['GET', 'POST'])
+def add_post():
+    if request.method == 'POST':
+        image = request.form['image']
+        text = request.form['text']
+        user = request.form['user']
+
+        with DataBaseAccess() as db:
+            db.add_post(image, text, user)
+
+        return redirect(url_for('index'))
+
+    return render_template('add_post.html')
+
+
+@app.route('/search', methods=['GET'])
+def search():
+    user = request.args.get('user')
+    posts = []
+
+    if user:
+        with DataBaseAccess() as db:
+            db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
+            posts = db.cursor.fetchall()
+
+    return render_template('index.html', posts=posts, search=True, search_user=user)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
