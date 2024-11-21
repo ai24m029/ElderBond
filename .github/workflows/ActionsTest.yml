@@ -3,9 +3,13 @@ name: Run Tests
 # Run the workflow whenever there's a push or pull request to the main branch
 on:
   push:
-    branches: [main]
+    branches: 
+      - main
+      - TEST_RESTAPI
   pull_request:
-    branches: [main]
+    branches: 
+      - main
+      - TEST_RESTAPI
 
 jobs:
   test:
