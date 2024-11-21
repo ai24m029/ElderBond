@@ -48,25 +48,32 @@ def search_posts_api():
 
 @app.route('/')
 def index():
-    # Display all posts
+    # Get the 'user' query parameter from the URL
+    user = request.args.get('user')
+
     with DataBaseAccess() as db:
-        posts = db.get_all_posts()
+        if user:
+            # Search for posts by the specific user
+            db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
+            posts = db.cursor.fetchall()
+        else:
+            # Fetch all posts if no user is specified
+            posts = db.get_all_posts()
+
     return render_template('index.html', posts=posts)
 
 
-@app.route('/add_post', methods=['GET', 'POST'])
+@app.route('/add_post', methods=['POST'])
 def add_post():
-    if request.method == 'POST':
-        image = request.form['image']
-        text = request.form['text']
-        user = request.form['user']
+    image = request.form['image']
+    text = request.form['text']
+    user = request.form['user']
 
-        with DataBaseAccess() as db:
-            db.add_post(image, text, user)
+    with DataBaseAccess() as db:
+        db.add_post(image, text, user)
 
-        return redirect(url_for('index'))
-
-    return render_template('add_post.html')
+    # Redirect back to the homepage
+    return redirect('/')
 
 
 @app.route('/search', methods=['GET'])
