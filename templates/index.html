@@ -3,66 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Social Media App</title>
+  <title>MyVienna Social Media App</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Search Section -->
-    <header class="header">
-      <h1>Social Media Feed</h1>
-      <form method="get" action="/" class="search-form">
-        <input
-          type="text"
-          name="user"
-          placeholder="Search posts by username"
-          value="{{ request.args.get('user') or '' }}"
-        />
-        <button type="submit" class="btn">Search</button>
-      </form>
-    </header>
+  <header>
+    <h1>Welcome to MyVienna</h1>
+    <nav>
+      <a href="{{ url_for('search_users') }}">Search Users</a>
+      <a href="{{ url_for('upload_post') }}">Upload Post</a>
+    </nav>
+  </header>
 
-    <!-- Feed Section -->
-    <main class="feed">
-      <ul class="post-list">
-        {% if posts %}
-          {% for post in posts %}
-            <li class="post">
-              <p class="post-user">{{ post[3] }}</p>
-              <p class="post-text">{{ post[2] }}</p>
-              <small class="post-timestamp">{{ post[4] }}</small>
-            </li>
-          {% endfor %}
-        {% else %}
-          <p class="no-posts">No posts found.</p>
-        {% endif %}
-      </ul>
-    </main>
+  <main>
+    <h2>All Users</h2>
+    <ul>
+      {% for user in users %}
+        <li>{{ user[1] }} ({{ user[2] }})</li>
+      {% endfor %}
+    </ul>
 
-    <!-- Add Post Button -->
-    <button class="add-button" id="open-add-modal">Add</button>
-
-    <!-- Add Post Modal -->
-    <div class="add-modal" id="add-modal">
-      <div class="modal-content">
-        <h2>Add a New Post</h2>
-        <form id="add-post-form" method="post" action="/add_post">
-          <label for="image">Image URL:</label>
-          <input type="text" id="image" name="image" placeholder="Enter image URL" required />
-
-          <label for="text">Text:</label>
-          <textarea id="text" name="text" placeholder="Write your post..." required></textarea>
-
-          <label for="user">Username:</label>
-          <input type="text" id="user" name="user" placeholder="Enter your username" required />
-
-          <button type="submit" class="btn">Submit</button>
-        </form>
-        <button class="btn close-modal" id="close-add-modal">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <h2>All Content</h2>
+    <ul>
+      {% for post in content %}
+        <li>
+          <strong>{{ post[2] }}</strong><br>
+          {{ post[3] }}<br>
+          <img src="{{ post[4] }}" alt="Post Image" width="100"><br>
+          <form action="{{ url_for('delete_content', content_id=post[0]) }}" method="POST">
+            <button type="submit">Delete</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  </main>
 </body>
 </html>

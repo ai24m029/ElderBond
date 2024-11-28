@@ -1,93 +1,73 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, flash
+from werkzeug.utils import secure_filename
 from DataBase import DataBaseAccess
+import os
+from PIL import Image
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # Required for flashing messages
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# API Endpoints
-
-@app.route('/api/posts', methods=['POST'])
-def add_post_api():
-    data = request.json
-    image = data.get('image')
-    text = data.get('text')
-    user = data.get('user')
-
-    with DataBaseAccess() as db:
-        db.add_post(image, text, user)
-
-    return jsonify({'message': 'Post added successfully'}), 201
-
-
-@app.route('/api/posts', methods=['GET'])
-def list_posts_api():
-    with DataBaseAccess() as db:
-        posts = db.get_all_posts()
-
-    results = [
-        {'id': post[0], 'image': post[1], 'text': post[2], 'user': post[3], 'timestamp': post[4]}
-        for post in posts
-    ]
-    return jsonify(results)
-
-
-@app.route('/api/posts/search', methods=['GET'])
-def search_posts_api():
-    user = request.args.get('user')
-    with DataBaseAccess() as db:
-        db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
-        posts = db.cursor.fetchall()
-
-    results = [
-        {'id': post[0], 'image': post[1], 'text': post[2], 'user': post[3], 'timestamp': post[4]}
-        for post in posts
-    ]
-    return jsonify(results)
-
-
-# Frontend Routes
+# Frontend Endpoints
 
 @app.route('/')
-def index():
-    # Get the 'user' query parameter from the URL
-    user = request.args.get('user')
-
+def home():
+    """Homepage showing all users and their content."""
     with DataBaseAccess() as db:
-        if user:
-            # Search for posts by the specific user
-            db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
-            posts = db.cursor.fetchall()
+        users = db.get_all_users()
+        content = db.get_all_posts()
+    return render_template('index.html', users=users, content=content)
+
+
+@app.route('/search_users', methods=['GET'])
+def search_users():
+    """Search for users by username or list all users."""
+    username = request.args.get('username')
+    with DataBaseAccess() as db:
+        if username:
+            db.cursor.execute("SELECT * FROM Users WHERE username LIKE ?", (f'%{username}%',))
+            users = db.cursor.fetchall()
         else:
-            # Fetch all posts if no user is specified
-            posts = db.get_all_posts()
-
-    return render_template('index.html', posts=posts)
+            users = db.get_all_users()
+    return render_template('search_users.html', users=users, search_term=username)
 
 
-@app.route('/add_post', methods=['POST'])
-def add_post():
-    image = request.form['image']
-    text = request.form['text']
-    user = request.form['user']
-
+@app.route('/delete_content/<int:content_id>', methods=['POST'])
+def delete_content(content_id):
+    """Delete a specific content post."""
     with DataBaseAccess() as db:
-        db.add_post(image, text, user)
+        db.delete_content(content_id)
+    flash("Content deleted successfully!")
+    return redirect(url_for('home'))
 
-    # Redirect back to the homepage
-    return redirect('/')
 
+@app.route('/upload_post', methods=['GET', 'POST'])
+def upload_post():
+    """Upload a new post."""
+    if request.method == 'POST':
+        user_id = request.form['userId']
+        title = request.form['title']
+        text = request.form['text']
+        image = request.files['image']
 
-@app.route('/search', methods=['GET'])
-def search():
-    user = request.args.get('user')
-    posts = []
+        # Save and process the image
+        filename = secure_filename(image.filename)
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        image.save(image_path)
 
-    if user:
+        # Resize and crop the image to 500x500px
+        with Image.open(image_path) as img:
+            img = img.resize((500, 500))
+            img.save(image_path)
+
         with DataBaseAccess() as db:
-            db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
-            posts = db.cursor.fetchall()
+            db.add_content(user_id, title, text, image_path)
 
-    return render_template('index.html', posts=posts, search=True, search_user=user)
+        flash("Post uploaded successfully!")
+        return redirect(url_for('home'))
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    # Render the upload form
+    with DataBaseAccess() as db:
+        users = db.get_all_users()
+    return render_template('upload_post.html', users=users)
