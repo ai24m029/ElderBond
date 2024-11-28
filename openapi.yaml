@@ -1,93 +1,298 @@
 openapi: 3.0.0
 info:
-  title: Simple Social Media API
-  description: API for managing social media posts.
-  version: 1.0.0
+  title: User and Content API for MyVienna Social Media App
+  description: API for managing users and their content, including direct image uploads.
+  version: 1.2.0
 servers:
   - url: http://localhost:5000
-
+    description: Local development server
 paths:
-  /posts:
+  /users:
     get:
-      summary: List all posts
+      summary: Get all users
+      description: Retrieve a list of all users.
       responses:
-        '200':
-          description: A list of posts
+        200:
+          description: A list of users
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Post'
+                  $ref: '#/components/schemas/User'
+  /user/{id}:
+    get:
+      summary: Get a user by ID
+      description: Retrieve a user by their unique ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: integer
+      responses:
+        200:
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          description: User not found
+    delete:
+      summary: Delete a user by ID
+      description: Delete a user by their unique ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the user to delete
+          schema:
+            type: integer
+      responses:
+        204:
+          description: User deleted successfully
+        404:
+          description: User not found
+  /user:
     post:
-      summary: Add a new post
+      summary: Create a new user
+      description: Add a new user to the system.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PostInput'
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: Username of the user
+                  example: johndoe
+                email:
+                  type: string
+                  description: Email of the user
+                  example: johndoe@example.com
+                password:
+                  type: string
+                  description: Password for the user
+                  example: mysecurepassword
       responses:
-        '201':
-          description: Post created
-  /posts/{postId}:
-    get:
-      summary: Get a post by ID
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Post details
+        201:
+          description: User created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Post'
-        '404':
-          description: Post not found
-  /posts/search:
+                $ref: '#/components/schemas/User'
+        400:
+          description: Invalid input
+  /users/{userId}/content:
     get:
-      summary: Search posts by user
+      summary: Get all content for a user
+      description: Retrieve all content created by a specific user.
       parameters:
-        - name: user
-          in: query
+        - name: userId
+          in: path
           required: true
+          description: ID of the user
           schema:
-            type: string
+            type: integer
+            example: 1
       responses:
-        '200':
-          description: Search results
+        200:
+          description: List of content by the user
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Post'
-
+                  $ref: '#/components/schemas/Content'
+        404:
+          description: User not found
+  /content:
+    get:
+      summary: Get content by location
+      description: Retrieve a list of up to 10 content posts from a specific location (Vienna district) created in the last 24 hours. Optionally, start from a specific postId.
+      parameters:
+        - name: district
+          in: query
+          required: true
+          description: The district of Vienna to filter content.
+          schema:
+            $ref: '#/components/schemas/District'
+        - name: postId
+          in: query
+          required: false
+          description: The ID of the post to start loading the next 10 posts.
+          schema:
+            type: integer
+      responses:
+        200:
+          description: A list of content posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Content'
+        400:
+          description: Invalid input (e.g., missing or invalid district)
+    post:
+      summary: Create new content
+      description: Add new content with text and an image. The image will be processed (cropped and resized to 500x500px) before being stored.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                  description: ID of the user creating the content
+                  example: 1
+                title:
+                  type: string
+                  description: Title of the content
+                  example: "My First Content"
+                text:
+                  type: string
+                  description: Content text
+                  example: "Hello, this is my first content!"
+                image:
+                  type: string
+                  format: binary
+                  description: Image file to upload
+      responses:
+        201:
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        400:
+          description: Invalid input
+  /content/search:
+    get:
+      summary: Search content by text and location
+      description: Retrieve all content containing a specific text and optionally filter by location (district).
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Text to search for in content
+          schema:
+            type: string
+            example: "restaurant"
+        - name: district
+          in: query
+          required: false
+          description: The district of Vienna to filter content
+          schema:
+            $ref: '#/components/schemas/District'
+      responses:
+        200:
+          description: List of matching content
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Content'
+      400:
+        description: Invalid input (e.g., query string missing or invalid district)
+  /content/{id}:
+    delete:
+      summary: Delete content by ID
+      description: Delete content by its unique ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the content to delete
+          schema:
+            type: integer
+      responses:
+        204:
+          description: Content deleted successfully
+        404:
+          description: Content not found
 components:
   schemas:
-    Post:
+    User:
       type: object
       properties:
         id:
           type: integer
-        image:
+          description: Unique ID of the user
+          example: 1
+        username:
           type: string
-        text:
+          description: Username of the user
+          example: johndoe
+        email:
           type: string
-        user:
+          description: Email of the user
+          example: johndoe@example.com
+        password:
           type: string
-        timestamp:
-          type: string
-    PostInput:
+          description: Password for the user (stored as a hashed value)
+          example: "$2b$12$abcdefghijklmnopqrstuv"
+    Content:
       type: object
       properties:
-        image:
+        id:
+          type: integer
+          description: Unique ID of the content
+          example: 1
+        user_id:
+          type: integer
+          description: ID of the user who created the content
+          example: 1
+        title:
           type: string
+          description: Title of the content
+          example: "My First Content"
         text:
           type: string
-        user:
+          description: Content text
+          example: "This is the content text."
+        image:
           type: string
+          description: Base64-encoded string or blob representation of the processed image
+          example: "iVBORw0KGgoAAAANSUhEUgAA..."
+        location:
+          $ref: '#/components/schemas/District'
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of content creation
+          example: "2024-01-01T12:00:00Z"
+    District:
+      type: string
+      enum:
+        - Innere Stadt
+        - Leopoldstadt
+        - Landstraße
+        - Wieden
+        - Margareten
+        - Mariahilf
+        - Neubau
+        - Josefstadt
+        - Alsergrund
+        - Favoriten
+        - Simmering
+        - Meidling
+        - Hietzing
+        - Penzing
+        - Rudolfsheim-Fünfhaus
+        - Ottakring
+        - Hernals
+        - Währing
+        - Döbling
+        - Brigittenau
+        - Floridsdorf
+        - Donaustadt
+        - Liesing
+      example: "Favoriten"
