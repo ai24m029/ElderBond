@@ -1,89 +1,112 @@
 import sqlite3
-from datetime import datetime
 
-class DataBaseAccess:
-    def __init__(self, db_name='social_media.db'):
-        self.conn = sqlite3.connect(db_name)
-        self.cursor = self.conn.cursor()
-        self.initialize_db()
+class DataBaseAcess:
+    def __init__(self, db_name='elder_social_media.db'):
+        self.db_name = db_name
+        self.initialize_database()
 
-    def initialize_db(self):
-        # Create Users table
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Users (
+    def initialize_database(self):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        
+        # Create UserTable
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS UserTable (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL
             )
         ''')
-        # Create Content table
-        self.cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Content (
+
+        # Create ContentTable
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ContentTable (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
                 title TEXT NOT NULL,
-                text TEXT,
+                text TEXT NOT NULL,
                 image TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES Users (id)
+                location TEXT,
+                time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES UserTable (id)
             )
         ''')
-        self.conn.commit()
 
-    # User methods
-    def add_user(self, username, email, password):
-        self.cursor.execute('''
-            INSERT INTO Users (username, email, password)
+        conn.commit()
+        conn.close()
+
+    def insert_user(self, username, email, password):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO UserTable (username, email, password)
             VALUES (?, ?, ?)
         ''', (username, email, password))
-        self.conn.commit()
-        return self.cursor.lastrowid
+        conn.commit()
+        conn.close()
 
-    def get_user(self, user_id):
-        self.cursor.execute('SELECT * FROM Users WHERE id = ?', (user_id,))
-        return self.cursor.fetchone()
-
-    def get_all_users(self):
-        self.cursor.execute('SELECT * FROM Users')
-        return self.cursor.fetchall()
-
-    def delete_user(self, user_id):
-        self.cursor.execute('DELETE FROM Users WHERE id = ?', (user_id,))
-        self.conn.commit()
-
-    # Content methods
-    def add_content(self, user_id, title, text, image):
-        self.cursor.execute('''
-            INSERT INTO Content (user_id, title, text, image)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, title, text, image))
-        self.conn.commit()
-        return self.cursor.lastrowid
+    def insert_content(self, user_id, title, text, image, location):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO ContentTable (user_id, title, text, image, location)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, title, text, image, location))
+        conn.commit()
+        conn.close()
 
     def get_content_by_user(self, user_id):
-        self.cursor.execute('SELECT * FROM Content WHERE user_id = ?', (user_id,))
-        return self.cursor.fetchall()
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM ContentTable WHERE user_id = ?
+        ''', (user_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    
+    def get_all_content(self):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM ContentTable')
+        content = cursor.fetchall()
+        conn.close()
+        return content
 
-    def get_content_by_id(self, content_id):
-        self.cursor.execute('SELECT * FROM Content WHERE id = ?', (content_id,))
-        return self.cursor.fetchone()
+    def get_all_users(self):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM UserTable')
+        content = cursor.fetchall()
+        conn.close()
+        return content
+    
+    def get_user_by_email(self, email):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM UserTable WHERE email = ?", (email,))
+        user = cursor.fetchone()
+        conn.close()
+        return user
+    
+    def get_user_by_username(self, username):
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM UserTable WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        conn.close()
+        return user
 
-    def delete_content(self, content_id):
-        self.cursor.execute('DELETE FROM Content WHERE id = ?', (content_id,))
-        self.conn.commit()
+    def delete_user(self, id):
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM UserTable WHERE id = ?", (id,))
+            conn.commit()  
+            conn.close()
+            return cursor.rowcount > 0  
+        except Exception as e:
+            print(f"Error deleting user: {e}")
+            return False
 
-    def search_content(self, query, district=None):
-        sql = 'SELECT * FROM Content WHERE text LIKE ?'
-        params = [f'%{query}%']
-        if district:
-            sql += ' AND location = ?'
-            params.append(district)
-        self.cursor.execute(sql, params)
-        return self.cursor.fetchall()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.conn.close()

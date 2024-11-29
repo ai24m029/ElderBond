@@ -1,73 +1,149 @@
-from flask import Flask, request, render_template, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.utils import secure_filename
-from DataBase import DataBaseAccess
+from flask_bcrypt import Bcrypt
 import os
-from PIL import Image
+from dataBase import DataBaseAcess
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Required for flashing messages
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app.secret_key = "supersecretkey"  # Change this for production
+bcrypt = Bcrypt(app)
 
-# Frontend Endpoints
+db = DataBaseAcess()
 
+# Directory to store uploaded images
+UPLOAD_FOLDER = "images"
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# --- Home Route ---
 @app.route('/')
 def home():
-    """Homepage showing all users and their content."""
-    with DataBaseAccess() as db:
+    if "user_id" in session:
         users = db.get_all_users()
-        content = db.get_all_posts()
-    return render_template('index.html', users=users, content=content)
+        content = db.get_all_content()
+        return render_template('index.html', users=users, content=content, logged_in=True)
+    
+    return redirect(url_for('login'))
 
-
-@app.route('/search_users', methods=['GET'])
-def search_users():
-    """Search for users by username or list all users."""
-    username = request.args.get('username')
-    with DataBaseAccess() as db:
-        if username:
-            db.cursor.execute("SELECT * FROM Users WHERE username LIKE ?", (f'%{username}%',))
-            users = db.cursor.fetchall()
-        else:
-            users = db.get_all_users()
-    return render_template('search_users.html', users=users, search_term=username)
-
-
-@app.route('/delete_content/<int:content_id>', methods=['POST'])
-def delete_content(content_id):
-    """Delete a specific content post."""
-    with DataBaseAccess() as db:
-        db.delete_content(content_id)
-    flash("Content deleted successfully!")
-    return redirect(url_for('home'))
-
-
-@app.route('/upload_post', methods=['GET', 'POST'])
-def upload_post():
-    """Upload a new post."""
+# --- Login Route ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login existing user."""
     if request.method == 'POST':
-        user_id = request.form['userId']
-        title = request.form['title']
-        text = request.form['text']
-        image = request.files['image']
+        email = request.form['email']
+        password = request.form['password']
+        user = db.get_user_by_email(email)
 
-        # Save and process the image
+        if user and bcrypt.check_password_hash(user[3], password):
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            users = db.get_all_users()
+            content = db.get_all_content()
+            return render_template('index.html', users=users, content=content, logged_in=True)
+
+        else:
+            flash('Invalid email or password.')
+    return render_template('login.html')
+
+# --- Signup Route ---
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    """Signup a new user."""
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = bcrypt.generate_password_hash(request.form['password']).decode('utf-8')
+
+        try:
+            db.insert_user(username, email, password)
+            flash('Account created successfully! Please log in.')
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash(f"Error: {str(e)}")
+    return render_template('signup.html')
+
+# --- Logout Route ---
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
+@app.route('/user/delete/<int:id>', methods=['POST'])
+def delete_user(id):
+    """Handle the user deletion process."""
+    if request.form.get('_method') == 'DELETE':
+        success = db.delete_user(id)
+        if success:
+            session.clear()  # Clear the session after successful deletion
+            flash('Your account has been deleted successfully.')
+            return redirect(url_for('login'))  # Redirect to the login page after deletion
+        else:
+            flash('User not found or an error occurred.')
+            return redirect(url_for('home'))  # Redirect back to the homepage if user is not found
+    else:
+        flash('Invalid method for deleting user.')
+        return redirect(url_for('home'))  # Redirect back to homepage if method is not DELETE
+
+# --- Add Content Route ---
+@app.route('/add_content', methods=['POST'])
+def add_content():
+    """Add a new post to the database."""
+    if "user_id" not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    title = request.form['title']
+    text = request.form['text']
+    location = request.form['location']
+    image = request.files.get('image')
+
+    image_path = None
+    if image:
         filename = secure_filename(image.filename)
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         image.save(image_path)
 
-        # Resize and crop the image to 500x500px
-        with Image.open(image_path) as img:
-            img = img.resize((500, 500))
-            img.save(image_path)
+    try:
+        db.insert_content(user_id, title, text, image_path, location)
+        return redirect(url_for('home'))
+    except Exception as e:
+        flash(f"Error: {str(e)}")
+        return redirect(url_for('home'))
+    
+@app.route('/users', methods=['GET'])
+def fetch_all_users():
+    """Fetch all users."""
+    users = db.get_all_users()
+    return render_template('index.html', users=users, content=[], search_result=None, logged_in=True)
 
-        with DataBaseAccess() as db:
-            db.add_content(user_id, title, text, image_path)
+@app.route('/search_user', methods=['POST'])
+def search_user():
+    """Search for a user by username and display their content."""
+    username = request.form['username']  # Get the username from the search form
+    user = db.get_user_by_username(username)
 
-        flash("Post uploaded successfully!")
+    if user:
+        # Fetch the user's content posts
+        user_id = user[0]
+        user_content = db.get_content_by_user(user_id)  # Get all posts by the user
+        return render_template(
+            'user_posts.html',
+            search_result={
+                "id": user[0],
+                "username": user[1],
+                "email": user[2],
+                "content": user_content
+            },
+            users=[],  # Clear users to focus only on search result
+            content=[],
+            logged_in=True
+        )
+    else:
+        flash(f"No user found with username '{username}'.")
         return redirect(url_for('home'))
 
-    # Render the upload form
-    with DataBaseAccess() as db:
-        users = db.get_all_users()
-    return render_template('upload_post.html', users=users)
+
+if __name__ == "__main__":
+    app.run(debug=True)
