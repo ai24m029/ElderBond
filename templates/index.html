@@ -172,14 +172,16 @@ function closePostModal() {
                 <div class="user-post">
                     <h3>{{ user[1] }} <small>({{ user[2] }})</small></h3>
                     {% for post in content %}
-                    <li>
-                        <strong>{{ post[2] }}</strong> <br>
-                        {{ post[3] }} <br>
-                        <em>Location:</em> {{ post[5] }} <br>
-                        {% if post[4] %}
-                        <img src="/images/{{ post[0] }}" alt="Post Image" width="200">
+                        {% if post[1] == user[0] %}
+                        <div class="post">
+                            <h4>{{ post[2] }}</h4>
+                            <p>{{ post[3] }}</p>
+                            <em>Location: {{ post[5] }}</em>
+                            {% if post[4] %}
+                            <img src="/images/{{ post[0] }}" alt="Post Image" width="200">
+                            {% endif %}
+                        </div>
                         {% endif %}
-                    </li>
                     {% endfor %}
                 </div>
                 {% endfor %}
