@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response
 from werkzeug.utils import secure_filename
 from flask_bcrypt import Bcrypt
 import os
@@ -11,7 +11,7 @@ bcrypt = Bcrypt(app)
 db = DataBaseAcess()
 
 # Directory to store uploaded images
-UPLOAD_FOLDER = "images"
+UPLOAD_FOLDER = 'static/images'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -89,29 +89,31 @@ def delete_user(id):
 # --- Add Content Route ---
 @app.route('/add_content', methods=['POST'])
 def add_content():
-    """Add a new post to the database."""
-    if "user_id" not in session:
-        return redirect(url_for('login'))
-
     user_id = session['user_id']
     title = request.form['title']
     text = request.form['text']
     location = request.form['location']
     image = request.files.get('image')
 
-    image_path = None
+    image_data = None
     if image:
-        filename = secure_filename(image.filename)
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        image.save(image_path)
+        image_data = image.read()  # Read image as binary
 
     try:
-        db.insert_content(user_id, title, text, image_path, location)
+        db.insert_content(user_id, title, text, image_data, location)
         return redirect(url_for('home'))
     except Exception as e:
         flash(f"Error: {str(e)}")
         return redirect(url_for('home'))
-    
+
+@app.route('/images/<int:content_id>')
+def serve_image(content_id):
+    image_data = db.get_image_by_content_id(content_id)
+    if image_data:
+        return Response(image_data, mimetype='image/jpeg')
+    return "Image not found", 404
+
+   
 @app.route('/users', methods=['GET'])
 def fetch_all_users():
     """Fetch all users."""

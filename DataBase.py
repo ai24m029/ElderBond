@@ -26,7 +26,7 @@ class DataBaseAcess:
                 user_id INTEGER NOT NULL,
                 title TEXT NOT NULL,
                 text TEXT NOT NULL,
-                image TEXT,
+                image BLOB,
                 location TEXT,
                 time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES UserTable (id)
