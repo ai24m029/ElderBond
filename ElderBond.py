@@ -1,93 +1,155 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
-from DataBase import DataBaseAccess
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from werkzeug.utils import secure_filename
+from flask_bcrypt import Bcrypt
+import os
+from DataBase import DataBaseAcess
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey"  # Change this for production
+bcrypt = Bcrypt(app)
 
-# API Endpoints
+db = DataBaseAcess()
 
-@app.route('/api/posts', methods=['POST'])
-def add_post_api():
-    data = request.json
-    image = data.get('image')
-    text = data.get('text')
-    user = data.get('user')
-
-    with DataBaseAccess() as db:
-        db.add_post(image, text, user)
-
-    return jsonify({'message': 'Post added successfully'}), 201
+# Directory to store uploaded images
+UPLOAD_FOLDER = os.path.join('static', 'images')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-@app.route('/api/posts', methods=['GET'])
-def list_posts_api():
-    with DataBaseAccess() as db:
-        posts = db.get_all_posts()
-
-    results = [
-        {'id': post[0], 'image': post[1], 'text': post[2], 'user': post[3], 'timestamp': post[4]}
-        for post in posts
-    ]
-    return jsonify(results)
-
-
-@app.route('/api/posts/search', methods=['GET'])
-def search_posts_api():
-    user = request.args.get('user')
-    with DataBaseAccess() as db:
-        db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
-        posts = db.cursor.fetchall()
-
-    results = [
-        {'id': post[0], 'image': post[1], 'text': post[2], 'user': post[3], 'timestamp': post[4]}
-        for post in posts
-    ]
-    return jsonify(results)
-
-
-# Frontend Routes
-
+# --- Home Route ---
 @app.route('/')
-def index():
-    # Get the 'user' query parameter from the URL
-    user = request.args.get('user')
+def home():
+    if "user_id" in session:
+        users = db.get_all_users()
+        content = db.get_all_content()
+        return render_template('main_page.html', users=users, content=content, logged_in=True)
 
-    with DataBaseAccess() as db:
-        if user:
-            # Search for posts by the specific user
-            db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
-            posts = db.cursor.fetchall()
+    return redirect(url_for('login'))
+
+
+# --- Login Route ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login existing user."""
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = db.get_user_by_email(email)
+
+        if user and bcrypt.check_password_hash(user[3], password):
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            users = db.get_all_users()
+            content = db.get_all_content()
+            return render_template('main_page.html', users=users, content=content, logged_in=True)
+
         else:
-            # Fetch all posts if no user is specified
-            posts = db.get_all_posts()
-
-    return render_template('index.html', posts=posts)
+            flash('Invalid email or password.')
+    return render_template('login.html')
 
 
-@app.route('/add_post', methods=['POST'])
-def add_post():
-    image = request.form['image']
+# --- Signup Route ---
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    """Signup a new user."""
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = bcrypt.generate_password_hash(request.form['password']).decode('utf-8')
+
+        try:
+            db.insert_user(username, email, password)
+            flash('Account created successfully! Please log in.')
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash(f"Error: {str(e)}")
+    return render_template('signup.html')
+
+
+# --- Logout Route ---
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
+@app.route('/user/delete/<int:id>', methods=['POST'])
+def delete_user(id):
+    """Handle the user deletion process."""
+    if request.form.get('_method') == 'DELETE':
+        success = db.delete_user(id)
+        if success:
+            session.clear()  # Clear the session after successful deletion
+            flash('Your account has been deleted successfully.')
+            return redirect(url_for('login'))  # Redirect to the login page after deletion
+        else:
+            flash('User not found or an error occurred.')
+            return redirect(url_for('home'))  # Redirect back to the homepage if user is not found
+    else:
+        flash('Invalid method for deleting user.')
+        return redirect(url_for('home'))  # Redirect back to homepage if method is not DELETE
+
+
+# --- Add Content Route ---
+@app.route('/add_content', methods=['POST'])
+def add_content():
+    """Add a new post to the database."""
+    if "user_id" not in session:
+        return redirect(url_for('login'))
+    user_id = session['user_id']
+    title = request.form['title']
     text = request.form['text']
-    user = request.form['user']
+    location = request.form['location']
+    image = request.files.get('image')
+    image_path = None
+    if image:
+        filename = secure_filename(image.filename)
+        relative_path = os.path.join('images', filename).replace("\\", "/")  # Save 'images/filename'
+        image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        image_path = relative_path
+    try:
+        db.insert_content(user_id, title, text, image_path, location)
+        return redirect(url_for('home'))
+    except Exception as e:
+        flash(f"Error: {str(e)}")
+        return redirect(url_for('login'))
 
-    with DataBaseAccess() as db:
-        db.add_post(image, text, user)
 
-    # Redirect back to the homepage
-    return redirect('/')
+@app.route('/users', methods=['GET'])
+def fetch_all_users():
+    """Fetch all users."""
+    users = db.get_all_users()
+    return render_template('main_page.html', users=users, content=[], search_result=None, logged_in=True)
 
 
-@app.route('/search', methods=['GET'])
-def search():
-    user = request.args.get('user')
-    posts = []
+@app.route('/search_user', methods=['POST'])
+def search_user():
+    """Search for a user by username and display their content."""
+    username = request.form['username']  # Get the username from the search form
+    user = db.get_user_by_username(username)
 
     if user:
-        with DataBaseAccess() as db:
-            db.cursor.execute("SELECT * FROM Posts WHERE user = ?", (user,))
-            posts = db.cursor.fetchall()
+        # Fetch the user's content posts
+        user_id = user[0]
+        user_content = db.get_content_by_user(user_id)  # Get all posts by the user
+        return render_template(
+            'user_posts.html',
+            search_result={
+                "id": user[0],
+                "username": user[1],
+                "email": user[2],
+                "content": user_content
+            },
+            users=[],  # Clear users to focus only on search result
+            content=[],
+            logged_in=True
+        )
+    else:
+        flash(f"No user found with username '{username}'.")
+        return redirect(url_for('home'))
 
-    return render_template('index.html', posts=posts, search=True, search_user=user)
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
     app.run(debug=True)
