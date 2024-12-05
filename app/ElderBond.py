@@ -5,6 +5,9 @@ import os
 from DataBase import DataBaseAcess
 
 app = Flask(__name__)
+# Flask environment
+app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
+app.config['SQLITE_DB_PATH'] = os.getenv('SQLITE_DB_PATH', 'social_media.db')
 app.secret_key = "supersecretkey"  # Change this for production
 bcrypt = Bcrypt(app)
 
@@ -151,5 +154,4 @@ def search_user():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
-    app.run(debug=True)
+    app.run(debug=(app.config['ENV'] == 'development'), host="0.0.0.0", port=5000)

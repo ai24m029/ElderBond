@@ -1,8 +1,11 @@
 import sqlite3
+import os
 
 
 class DataBaseAcess:
     def __init__(self, db_name='elder_social_media.db'):
+        self.db_path = os.getenv('SQLITE_DB_PATH', 'social_media.db')  # Default path if env variable is missing
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.db_name = db_name
         self.initialize_database()
 
