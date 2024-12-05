@@ -1,6 +1,6 @@
 import unittest
-from ElderBond import app
-from DataBase import DataBaseAcess
+from app.ElderBond import app
+from app.DataBase import DataBaseAcess
 
 
 class FlaskAppTests(unittest.TestCase):

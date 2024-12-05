@@ -1,0 +1,18 @@
+version: '3.9'
+
+services:
+  api:
+    build:
+      context: .
+    ports:
+      - "5000:5000"  # Expose API on port 5000
+    volumes:
+      - ./app:/app  # Mount the app code for local development
+      - sqlite_data:/app/database  # Persistent storage for SQLite database
+    environment:
+      - FLASK_ENV=${FLASK_ENV}  # Flask environment (development/production)
+      - SQLITE_DB_PATH=/app/database/social_media.db  # Path to SQLite database file
+    restart: always
+
+volumes:
+  sqlite_data:  # Volume to persist SQLite database file

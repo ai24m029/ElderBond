@@ -1,15 +1,14 @@
-# Verwende ein Python-Image als Basis
+# Use Python 3.9 slim image as the base
 FROM python:3.9-slim
 
-# Setze das Arbeitsverzeichnis im Container
+# Set the working directory in the container
 WORKDIR /app
 
-# Kopiere alle Dateien aus deinem aktuellen Verzeichnis in das Container-Verzeichnis /app
+# Copy all files from the current directory into the container's /app directory
 COPY . /app
 
-# Installiere die Abhängigkeiten, die in deiner requirements.txt aufgeführt sind
+# Install dependencies listed in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Setze den Befehl, um die Anwendung zu starten (je nach Anwendung anpassen)
-#Hier kann auch deine Hauptdatei im Projektverzeichnis sein
-CMD ["python", "ElderBond.py"]
+# Set the command to run the Flask application
+CMD ["sh", "-c", "python ElderBond.py --host=0.0.0.0 --port=5000"]

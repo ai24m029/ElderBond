@@ -1,93 +1,163 @@
 openapi: 3.0.0
 info:
-  title: Simple Social Media API
-  description: API for managing social media posts.
+  title: Social Media App API
+  description: API for the social media web application.
   version: 1.0.0
 servers:
   - url: http://localhost:5000
-
+    description: Local development server
 paths:
-  /posts:
+  /:
     get:
-      summary: List all posts
+      summary: Home
+      description: Redirects to login if user is not logged in, else shows the main page.
       responses:
         '200':
-          description: A list of posts
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Post'
+          description: Rendered main page with users and content.
+        '302':
+          description: Redirect to the login page.
+
+  /login:
+    get:
+      summary: Login Page
+      description: Render the login form.
+      responses:
+        '200':
+          description: Login form displayed.
     post:
-      summary: Add a new post
+      summary: User Login
+      description: Authenticate the user and start a session.
       requestBody:
         required: true
         content:
-          application/json:
+          application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PostInput'
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful.
+        '400':
+          description: Invalid email or password.
+
+  /signup:
+    get:
+      summary: Signup Page
+      description: Render the signup form.
+      responses:
+        '200':
+          description: Signup form displayed.
+    post:
+      summary: User Signup
+      description: Create a new user account.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
       responses:
         '201':
-          description: Post created
-  /posts/{postId}:
-    get:
-      summary: Get a post by ID
+          description: Account created successfully.
+        '400':
+          description: Error during account creation.
+
+  /logout:
+    post:
+      summary: Logout
+      description: Logs the user out by clearing the session.
+      responses:
+        '302':
+          description: Redirect to the login page.
+
+  /user/delete/{id}:
+    post:
+      summary: Delete User
+      description: Delete the user's account.
       parameters:
-        - name: postId
+        - name: id
           in: path
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                _method:
+                  type: string
+                  enum: [DELETE]
       responses:
         '200':
-          description: Post details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Post'
-        '404':
-          description: Post not found
-  /posts/search:
-    get:
-      summary: Search posts by user
-      parameters:
-        - name: user
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Search results
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Post'
+          description: User deleted successfully.
+        '400':
+          description: User not found or error occurred.
 
-components:
-  schemas:
-    Post:
-      type: object
-      properties:
-        id:
-          type: integer
-        image:
-          type: string
-        text:
-          type: string
-        user:
-          type: string
-        timestamp:
-          type: string
-    PostInput:
-      type: object
-      properties:
-        image:
-          type: string
-        text:
-          type: string
-        user:
-          type: string
+  /add_content:
+    post:
+      summary: Add Content
+      description: Add a new post to the database.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                text:
+                  type: string
+                location:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Content added successfully.
+        '400':
+          description: Error during content creation.
+
+  /users:
+    get:
+      summary: Fetch All Users
+      description: Fetch and display all registered users.
+      responses:
+        '200':
+          description: List of users displayed.
+
+  /search_user:
+    post:
+      summary: Search User
+      description: Search for a user by username and display their content.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+      responses:
+        '200':
+          description: User content displayed.
+        '404':
+          description: User not found.
