@@ -31,6 +31,7 @@ class DataBaseAcess:
                 title TEXT NOT NULL,
                 text TEXT NOT NULL,
                 image TEXT,
+                resize_image TEXT,
                 location TEXT,
                 time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES UserTable (id)
