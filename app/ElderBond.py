@@ -111,12 +111,11 @@ def add_content():
         relative_path = os.path.join('images', filename).replace("\\", "/")  # Save 'images/filename'
         image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         image_path = relative_path
-    try:
-        db.insert_content(user_id, title, text, image_path, location)
-        return redirect(url_for('home'))
-    except Exception as e:
-        flash(f"Error: {str(e)}")
-        return redirect(url_for('login'))
+    if image_path:
+        content_id = db.insert_content(user_id, title, text, image_path, location)
+        print(f"--------id------ + {content_id}", flush=True)
+        send_to_queue(content_id, image_path)
+    return redirect(url_for('home'))
 
 
 @app.route('/users', methods=['GET'])

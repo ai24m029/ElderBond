@@ -93,7 +93,7 @@ main {
     gap: 1rem;
 }
 .sign-out {
-    background-color: #ff5252;
+    background-color: #6c52ff;
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -141,6 +141,10 @@ main {
 
 </style>
     <script>
+
+function showFullSize(fullSizeUrl) {
+    window.open(fullSizeUrl, '_blank');
+}
         // Open the post modal
 function openPostModal() {
   document.getElementById("postModal").style.display = "flex";
@@ -165,30 +169,31 @@ function closePostModal() {
             </form>
         </header>
 
-        <!-- Main Content Section -->
-        <main>
-            <div class="user-posts">
-                <!-- Users and Posts will be dynamically populated -->
-                {% for user in users %}
-                <div class="user-post">
-                    <h3>{{ user[1] }} <small>({{ user[2] }})</small></h3>
-                    {% for post in content %}
-                        {% if post[1] == user[0] %}
-                        <div class="post">
-                            <h4>{{ post[2] }}</h4>
-                            <p>{{ post[3] }}</p>
-                            <em>Location: {{ post[5] }}</em>
-                            {% if post[4] %}
-                            <img src="{{ url_for('static', filename=post[4]) }}" alt="Post Image" width="200">
+    <!-- Main Content Section -->
+    <main>
+        <div class="user-posts">
+            <!-- Users and Posts will be dynamically populated -->
+            {% for user in users %}
+            <div class="user-post">
+                <h3>{{ user[1] }} <small>({{ user[2] }})</small></h3>
+                {% for post in content %}
+                    {% if post[1] == user[0] %}
+                    <div class="post">
+                        <h4>{{ post[2] }}</h4>
+                        <p>{{ post[3] }}</p>
+                        <em>Location: {{ post[5] }}</em>
+                    {% if post[6] %}
+                        <img src="{{ url_for('static', filename=post[6]) }}" alt="Reduced Image" width="200">
+                        <button onclick="showFullSize('{{ url_for('static', filename=post[4]) }}')">View Full Size</button>
 
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
+
+                    </div>
+                    {% endif %}
                 {% endfor %}
             </div>
-        </main>
+            {% endfor %}
+        </div>
+    </main>
 
         <!-- Floating Buttons -->
         <div class="floating-buttons">

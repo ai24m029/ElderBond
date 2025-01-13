@@ -7,4 +7,7 @@ document.getElementById('open-add-modal').addEventListener('click', function () 
   document.getElementById('close-add-modal').addEventListener('click', function () {
     document.getElementById('add-modal').style.display = 'none';
   });
-  
+
+  function showFullSize(fullSizeUrl) {
+      window.open(fullSizeUrl, '_blank');
+  }
