@@ -5,14 +5,39 @@ services:
     build:
       context: .
     ports:
-      - "5000:5000"  # Expose API on port 5000
+      - "5000:5000"
     volumes:
-      - ./app:/app  # Mount the app code for local development
-      - sqlite_data:/app/database  # Persistent storage for SQLite database
+      - ./app:/app
+      - ./app/elder_social_media.db:/app/elder_social_media.db  # Mount the database file
     environment:
-      - FLASK_ENV=${FLASK_ENV}  # Flask environment (development/production)
-      - SQLITE_DB_PATH=/app/database/social_media.db  # Path to SQLite database file
+      - FLASK_ENV=${FLASK_ENV}
+      - SQLITE_DB_PATH=/app/elder_social_media.db
+    depends_on:
+      - rabbitmq
+    restart: always
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    restart: always
+
+  image_resizer:
+    build:
+      context: ./resizer
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./app/static/images:/app/static/images  # Share images directory
+      - ./app/elder_social_media.db:/app/elder_social_media.db:rw  # Mount the database file
+    environment:
+      - SQLITE_DB_PATH=/app/elder_social_media.db
     restart: always
 
 volumes:
-  sqlite_data:  # Volume to persist SQLite database file
+  sqlite_data: {}

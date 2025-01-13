@@ -3,6 +3,8 @@ from werkzeug.utils import secure_filename
 from flask_bcrypt import Bcrypt
 import os
 from DataBase import DataBaseAcess
+import pika
+import json
 
 app = Flask(__name__)
 # Flask environment
@@ -94,6 +96,14 @@ def delete_user(id):
         return redirect(url_for('home'))  # Redirect back to homepage if method is not DELETE
 
 
+def send_to_queue(content_id, image_path):
+    connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
+    channel = connection.channel()
+    channel.queue_declare(queue='image_resize')
+    message = json.dumps({"content_id": content_id, "image_path": image_path})
+    channel.basic_publish(exchange='', routing_key='image_resize', body=message)
+    connection.close()
+
 # --- Add Content Route ---
 @app.route('/add_content', methods=['POST'])
 def add_content():
@@ -116,6 +126,7 @@ def add_content():
         print(f"--------id------ + {content_id}", flush=True)
         send_to_queue(content_id, image_path)
     return redirect(url_for('home'))
+
 
 
 @app.route('/users', methods=['GET'])

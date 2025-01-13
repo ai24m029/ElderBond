@@ -13,6 +13,8 @@ class DataBaseAcess:
 
 
     def initialize_database(self):
+        print(f"Initializing database at: {self.db_name}", flush=True)
+
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
 
@@ -73,7 +75,9 @@ class DataBaseAcess:
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (user_id, title, text, image, location, reduced_image))
         conn.commit()
+        content_id = cursor.lastrowid  # Get the ID of the last inserted row
         conn.close()
+        return content_id
 
     def get_content_by_user(self, user_id):
         conn = sqlite3.connect(self.db_name)
