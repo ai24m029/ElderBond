@@ -43,13 +43,14 @@ services:
     depends_on:
       - rabbitmq
     volumes:
-      - ./TextGenerator/text_generator.py:/app/text_generator.py
+      - ./TextGenerator:/app  # Mount the TextGenerator folder
       - ./app/elder_social_media.db:/app/elder_social_media.db:rw  # Mount the database file
 
     environment:
       - SQLITE_DB_PATH=/app/elder_social_media.db
-      -  HF_API_TOKEN=${HF_API_TOKEN}  # Use environment variable
-
+      - HF_API_TOKEN=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
+    env_file:
+      - .env  # Load environment variables from .env file
     restart: always
 
 volumes:
