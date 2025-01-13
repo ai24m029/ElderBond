@@ -4,7 +4,7 @@ import os
 import sqlite3
 from PIL import Image
 import json
-from image_resizer import resize_image, update_database, callback
+from ..resizer.image_resizer import resize_image, update_database, callback
 
 
 class TestImageResizer(unittest.TestCase):

@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   api:
     build:
@@ -37,6 +35,21 @@ services:
       - ./app/elder_social_media.db:/app/elder_social_media.db:rw  # Mount the database file
     environment:
       - SQLITE_DB_PATH=/app/elder_social_media.db
+    restart: always
+
+  text_generator:
+    build:
+      context: ./TextGenerator
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./TextGenerator/text_generator.py:/app/text_generator.py
+      - ./app/elder_social_media.db:/app/elder_social_media.db:rw  # Mount the database file
+
+    environment:
+      - SQLITE_DB_PATH=/app/elder_social_media.db
+      -  HF_API_TOKEN=${HF_API_TOKEN}  # Use environment variable
+
     restart: always
 
 volumes:

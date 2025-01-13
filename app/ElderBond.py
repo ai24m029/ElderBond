@@ -110,23 +110,56 @@ def add_content():
     """Add a new post to the database."""
     if "user_id" not in session:
         return redirect(url_for('login'))
+
     user_id = session['user_id']
     title = request.form['title']
-    text = request.form['text']
+    text = request.form.get('text')
+    prompt = request.form.get('prompt')
     location = request.form['location']
     image = request.files.get('image')
     image_path = None
+
+    # Handle image upload if provided
     if image:
         filename = secure_filename(image.filename)
         relative_path = os.path.join('images', filename).replace("\\", "/")  # Save 'images/filename'
         image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         image_path = relative_path
-    if image_path:
         content_id = db.insert_content(user_id, title, text, image_path, location)
-        print(f"--------id------ + {content_id}", flush=True)
+        print(f"[INFO] Post created with uploaded image (ID: {content_id})", flush=True)
+
+        # Send the image path to RabbitMQ for processing
         send_to_queue(content_id, image_path)
+
+    # Handle user-provided text
+    elif text:
+        content_id = db.insert_content(user_id, title, text, None, location)
+        print(f"[INFO] Post created with user-written text (ID: {content_id})", flush=True)
+
+    # Handle prompt-based text generation
+    elif prompt:
+        content_id = db.insert_content(user_id, title, prompt, None, location)
+        print(f"[INFO] Post created with prompt for text generation (ID: {content_id})", flush=True)
+
+        # Send the prompt to RabbitMQ for text generation
+        send_prompt_to_queue(content_id, prompt)
+
+    else:
+        print("[ERROR] No valid content provided.", flush=True)
+        return redirect(url_for('home'))
+
     return redirect(url_for('home'))
 
+
+
+def send_prompt_to_queue(content_id, prompt):
+    """Send the text generation prompt to RabbitMQ."""
+    connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
+    channel = connection.channel()
+    channel.queue_declare(queue='text_generation')
+    message = json.dumps({"content_id": content_id, "prompt": prompt})
+    channel.basic_publish(exchange='', routing_key='text_generation', body=message)
+    connection.close()
 
 
 @app.route('/users', methods=['GET'])

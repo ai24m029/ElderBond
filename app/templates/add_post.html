@@ -8,19 +8,35 @@
 <body>
   <h1>Add a New Post</h1>
 
-  <form method="post" action="/add_post">
-    <label for="image">Image:</label>
-    <input type="text" id="image" name="image" placeholder="Image URL" required><br><br>
+  <form method="post" action="/add_content" enctype="multipart/form-data">
+    <!-- Title Field -->
+    <label for="title">Title:</label>
+    <input type="text" id="title" name="title" placeholder="Post Title" required><br><br>
 
-    <label for="text">Text:</label>
-    <textarea id="text" name="text" placeholder="Write something..." required></textarea><br><br>
+    <!-- Text Field -->
+    <label for="text">Description:</label>
+    <textarea id="text" name="text" placeholder="Write a description..." required></textarea><br><br>
 
-    <label for="user">User:</label>
-    <input type="text" id="user" name="user" placeholder="Your username" required><br><br>
+    <!-- Image Upload -->
+    <label for="image">Upload an Image:</label>
+    <input type="file" id="image" name="image"><br><br>
 
+    <!-- Text-to-Image Prompt -->
+    <label for="prompt">Generate an Image (Text Prompt):</label>
+    <input type="text" id="prompt" name="prompt" placeholder="Enter text to generate an image"><br><br>
+
+    <!-- Location Field -->
+    <label for="location">Location:</label>
+    <input type="text" id="location" name="location" placeholder="Enter location"><br><br>
+
+    <p>
+      Note: If you upload an image, the text prompt will be ignored.
+    </p>
+
+    <!-- Submit Button -->
     <button type="submit">Submit</button>
   </form>
 
-  <a href="/app/static">Back to All Posts</a>
+  <a href="/">Back to All Posts</a>
 </body>
 </html>

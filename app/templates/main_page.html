@@ -183,9 +183,11 @@ function closePostModal() {
                         <p>{{ post[3] }}</p>
                         <em>Location: {{ post[5] }}</em>
                     {% if post[6] %}
+
                         <img src="{{ url_for('static', filename=post[6]) }}" alt="Reduced Image" width="200">
                         <button onclick="showFullSize('{{ url_for('static', filename=post[4]) }}')">View Full Size</button>
 
+                    {% endif %}
 
                     </div>
                     {% endif %}
@@ -212,10 +214,21 @@ function closePostModal() {
         <div class="modal-content">
             <h2>Create a New Post</h2>
             <form action="/add_content" method="POST" enctype="multipart/form-data">
+
                 <input type="text" name="title" placeholder="Post Title" required>
-                <textarea name="text" placeholder="Post Content" required></textarea>
+
+                <textarea name="text" placeholder="Post Content"></textarea>
+
                 <input type="text" name="location" placeholder="Location" required>
+
                 <input type="file" name="image">
+
+                 <!-- Prompt for Text Generation -->
+                 <label for="prompt">Or Generate Text (Enter Prompt):</label>
+                 <input type="text" id="prompt" name="prompt" placeholder="Enter a prompt to generate text">
+
+    <p>Note: If you write your own text, the prompt will be ignored.</p>
+
                 <div class="modal-actions">
                     <button type="submit">Post</button>
                     <button type="button" onclick="closePostModal()">Cancel</button>

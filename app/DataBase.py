@@ -34,7 +34,7 @@ class DataBaseAcess:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
                 title TEXT NOT NULL,
-                text TEXT NOT NULL,
+                text TEXT,
                 image TEXT,
                 location TEXT,
                 reduced_image TEXT,
