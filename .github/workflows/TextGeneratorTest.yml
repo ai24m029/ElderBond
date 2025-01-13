@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pika unittest
+          pip install requests pika 
 
       # Step 4: Run the tests
       - name: Run tests
