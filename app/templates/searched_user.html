@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elder Bond</title>
-    <style>
+    <title>User Posts</title>
+    <link rel="stylesheet" href="style.css">
+
+
+
+ <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -67,6 +71,25 @@
         }
 
         .account-button:hover {
+            background-color: #6200ea;
+            color: #fff;
+        }
+
+        /* Account Button direkt neben der Suchleiste */
+        .feed-button {
+            margin-right: -50em;
+            background-color: #fff;
+            color: #6200ea;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .feed-button:hover {
             background-color: #6200ea;
             color: #fff;
         }
@@ -271,117 +294,135 @@
             color: white;
             border: none;
         }
+
+        .button-group {
+    display: flex;
+    gap: 1rem; /* Abstand zwischen den Buttons */
+    margin-right: 2rem; /* Abstand von der Suchleiste */
+}
+
+.feed-button, .account-button {
+    margin: 0; /* Entfernt zusätzliche Margins */
+}
     </style>
+
+<script>
+    // Open the post modal
+function openPostModal() {
+  document.getElementById("postModal").style.display = "flex";
+  console.log("opened");
+
+}
+
+// Close the post modal
+function closePostModal() {
+  document.getElementById("postModal").style.display = "none";
+  console.log("closed");
+
+
+}
+function showFullSize(imageUrl) {
+    window.open(imageUrl, '_blank');
+}
+
+</script>
 </head>
 <body>
+
     <div class="container">
-        <!-- Header mit Suchleiste -->
+        <!-- Header with Search Bar -->
         <header>
             <h1>ElderBond</h1>
             <form class="search-bar" action="/search_user" method="POST">
                 <input type="text" name="username" placeholder="Search for a user..." required>
                 <button type="submit">Search</button>
-                <!-- Account Button direkt neben der Suchleiste -->
-               <!-- Account Button -->
-
-
             </form>
-            <a href="{{ url_for('user_account') }}">
-                <button class="account-button">My Account</button>
-            </a>
+            <div class="button-group">
+                <a href="{{ url_for('home') }}">
+                    <button class="feed-button">Main Feed</button>
+                </a>
+                <a href="{{ url_for('user_account') }}">
+                    <button class="account-button">My Account</button>
+                </a>
+            </div>
         </header>
 
-        <!-- Hauptinhalt -->
+        <!-- Main Content Section -->
         <main>
+            <h2>User Posts</h2>
             <div class="user-posts">
-                {% for user in users %}
-                <div class="user-post">
-
-                    {% for post in content %}
-                    {% if post[1] == user[0] %}
-                    <div class="post">
-                      <h3>{{ user[1] }} <small>({{ user[2] }})</small></h3>
-                        <h4>{{ post[2] }}</h4>
-                        {% if post[6] %}
+                <!-- User posts dynamically populated -->
+                {% if search_result %}
+                <div class="user-profile">
+                    <h3>{{ search_result['username'] }}'s Posts</h3>
+                    {% if search_result['content'] %}
+                    <div class="posts">
+                        {% for post in search_result['content'] %}
+                        <div class="post">
+                            <h4>{{ post[2] }}</h4>
+                            <p>{{ post[3] }}</p>
+                            <em>Location: {{ post[5] }}</em>
+                            {% if post[6] %}
                             <div class="image-container">
                                 <img src="{{ url_for('static', filename=post[6]) }}" alt="Image">
                                 <button class="view-full-size" onclick="showFullSize('{{ url_for('static', filename=post[6]) }}')">🔍</button>
                             </div>
-                        {% endif %}
-
-                        <p>{{ post[3] }}</p>
-                        <em>Location: {{ post[5] }}</em>
-
-                        <!-- Like und Kommentar Buttons -->
-                        <div class="post-actions">
-                            <button class="like-button" onclick="toggleLike(this)">
-                                Like (<span class="like-count">420</span>)
-                            </button>
-                            <button class="comment-button">Comment</button>
+                            {% endif %}
                         </div>
+                        {% endfor %}
                     </div>
+                    {% else %}
+                    <p>No posts found for this user.</p>
                     {% endif %}
-                    {% endfor %}
                 </div>
-                {% endfor %}
+                {% else %}
+                <p>No user found. Try searching for a different username.</p>
+                {% endif %}
             </div>
         </main>
 
+
         <!-- Floating Buttons -->
-        <div class="floating-buttons">
-            <button class="add-post" onclick="openPostModal()">+</button>
-        </div>
-
-        <!-- Modales Fenster zum Erstellen eines Beitrags -->
-        <div class="modal" id="postModal">
-            <div class="modal-content">
-                <h2>Create Post</h2>
-                <form action="/add_content" method="POST" enctype="multipart/form-data">
-                    <input type="text" name="title" placeholder="Title" required>
-                    <textarea name="text" placeholder="Post Content"></textarea>
-                    <input type="file" name="image">
-                    <input type="text" name="location" placeholder="Location" required>
-                    <label for="prompt">Or Generate Text (Enter Prompt):</label>
-                    <input type="text" id="prompt" name="prompt" placeholder="Enter a prompt to generate text">
-                    <p>Note: If you write your own text, the prompt will be ignored.</p>
-                    <div class="modal-actions">
-                        <button type="submit">Post</button>
-                        <button type="button" onclick="closePostModal()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-
-      <!-- Floating Buttons -->
         <div class="floating-buttons">
             <!-- Sign Out Button -->
             <form action="{{ url_for('logout') }}" method="POST">
                 <button class="sign-out">Sign Out</button>
             </form>
 
-        <script>
-            // Öffnen und Schließen des Modals
-            function openPostModal() {
-                document.getElementById('postModal').style.display = 'flex';
-            }
-
-            function closePostModal() {
-                document.getElementById('postModal').style.display = 'none';
-            }
-
-            // Funktionen für den "Like"-Button
-            function toggleLike(button) {
-                let likeCount = button.querySelector('.like-count');
-                let currentLikes = parseInt(likeCount.innerText);
-                likeCount.innerText = currentLikes + 1;
-            }
-
-            // Funktion zum Anzeigen der vollständigen Bildgröße
-            function showFullSize(imageUrl) {
-                window.open(imageUrl, '_blank');
-            }
-        </script>
+            <!-- Add Post Button -->
+            <button class="add-post" onclick="openPostModal()">+</button>
+        </div>
     </div>
+
+  <!-- Modal for Creating a Post -->
+    <div class="modal" id="postModal">
+        <div class="modal-content">
+            <h2>Create a New Post</h2>
+            <form action="/add_content" method="POST" enctype="multipart/form-data">
+
+                <input type="text" name="title" placeholder="Post Title" required>
+
+                <textarea name="text" placeholder="Post Content" required></textarea>
+
+                <input type="text" name="location" placeholder="Location" required>
+
+                <input type="file" name="image">
+
+                 <!-- Prompt for Text Generation -->
+                 <label for="prompt">Or Generate Text (Enter Prompt):</label>
+                 <input type="text" id="prompt" name="prompt" placeholder="Enter a prompt to generate text">
+
+    <p>Note: If you write your own text, the prompt will be ignored.</p>
+
+                <div class="modal-actions">
+                    <button type="submit">Post</button>
+                    <button type="button" onclick="closePostModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
 </body>
 </html>
